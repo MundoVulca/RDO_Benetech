@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RDO — Benetech Brasil</title>
+<style>
+  :root{
+    --navy:#1F3864; --blue:#2E5395; --light:#D9E2F3; --yellow:#FFF6C9;
+    --gray:#F4F4F4; --border:#C9D3E3; --red:#B00020; --green:#1E7A34;
+  }
+  *{box-sizing:border-box;}
+  body{font-family:Arial, Helvetica, sans-serif; background:#eef1f6; margin:0; padding:0; color:#1a1a1a;}
+  header{background:var(--navy); color:#fff; padding:16px 20px;}
+  header h1{margin:0; font-size:20px;}
+  header p{margin:4px 0 0; font-size:12px; color:#c9d6ee;}
+  .wrap{max-width:1100px; margin:20px auto; padding:0 14px 60px;}
+  .card{background:#fff; border:1px solid var(--border); border-radius:8px; padding:16px 18px; margin-bottom:18px; box-shadow:0 1px 3px rgba(0,0,0,.06);}
+  .card h2{font-size:14px; color:var(--navy); text-transform:uppercase; letter-spacing:.03em; margin:0 0 12px; border-bottom:2px solid var(--light); padding-bottom:6px;}
+  .grid{display:grid; gap:10px;}
+  .grid-4{grid-template-columns:repeat(4,1fr);}
+  .grid-3{grid-template-columns:repeat(3,1fr);}
+  .grid-2{grid-template-columns:repeat(2,1fr);}
+  label{font-size:11px; font-weight:bold; color:#444; display:block; margin-bottom:3px;}
+  input, textarea, select{width:100%; padding:6px 7px; font-size:13px; border:1px solid var(--border); border-radius:4px; background:var(--yellow); font-family:Arial;}
+  textarea{resize:vertical; min-height:50px;}
+  table{width:100%; border-collapse:collapse; margin-top:8px; font-size:12px;}
+  th{background:var(--navy); color:#fff; padding:6px 4px; font-size:11px; text-align:center;}
+  td{border:1px solid var(--border); padding:3px; text-align:center;}
+  td input{background:var(--yellow); border:none; padding:5px 4px; font-size:12px; text-align:center;}
+  td.calc input{background:var(--gray); color:#333;}
+  .row-actions{text-align:center; white-space:nowrap;}
+  button{cursor:pointer; border:none; border-radius:4px; font-size:12px; padding:6px 10px; font-weight:bold;}
+  .btn-add{background:var(--blue); color:#fff;}
+  .btn-del{background:#e5e5e5; color:#555; padding:4px 8px;}
+  .btn-del:hover{background:var(--red); color:#fff;}
+  .totals{display:flex; gap:24px; margin-top:10px; font-size:13px; font-weight:bold;}
+  .totals span{color:var(--navy);}
+  .toolbar{display:flex; gap:10px; flex-wrap:wrap; margin:14px 0;}
+  .btn-primary{background:var(--navy); color:#fff; padding:9px 16px;}
+  .btn-secondary{background:#fff; color:var(--navy); border:1px solid var(--navy); padding:9px 16px;}
+  .btn-danger{background:#fff; color:var(--red); border:1px solid var(--red); padding:9px 16px;}
+  .status{font-size:12px; color:var(--green); margin-left:6px;}
+  .sig{height:60px;}
+  .sigbox{border:1px solid var(--border); border-radius:6px; background:#fff; overflow:hidden;}
+  .sigcanvas{display:block; width:100%; height:150px; background:#fffef8; touch-action:none; cursor:crosshair;}
+  .btn-clear{width:100%; background:#f0f0f0; color:#555; border-top:1px solid var(--border); padding:6px; font-size:11px; border-radius:0;}
+  .btn-clear:hover{background:#e5e5e5;}
+  footer{text-align:center; font-size:11px; color:#888; padding:14px;}
+  @media print{
+    header, .toolbar, .btn-del, .btn-add, .btn-clear{display:none !important;}
+    body{background:#fff;}
+    .card{box-shadow:none; border:1px solid #999;}
+    .sigbox{border:1px solid #999;}
+  }
+
+  /* ===== RESPONSIVO ===== */
+  @media (max-width:900px){
+    .grid-4{grid-template-columns:repeat(2,1fr);}
+    .grid-3{grid-template-columns:repeat(2,1fr);}
+  }
+  @media (max-width:600px){
+    header{padding:12px 14px;}
+    header h1{font-size:17px;}
+    .wrap{margin:12px auto; padding:0 8px 50px;}
+    .card{padding:12px 10px;}
+    .grid-4, .grid-3, .grid-2{grid-template-columns:1fr;}
+    .toolbar{gap:6px;}
+    .toolbar button{flex:1 1 auto; padding:10px 8px; font-size:12px;}
+    /* Tabelas viram cartões empilhados em telas pequenas */
+    table, thead, tbody, th, td, tr{display:block; width:100%;}
+    thead{display:none;}
+    #tblEfetivo tbody tr, #tblParada tbody tr, #tblAtividade tbody tr{
+      border:1px solid var(--border); border-radius:6px; margin-bottom:10px; padding:8px; background:#fafbfd;
+    }
+    td{border:none; padding:5px 2px; text-align:left;}
+    td::before{content:attr(data-label); display:block; font-size:10px; font-weight:bold; color:#666; margin-bottom:2px; text-transform:uppercase;}
+    td input, td select{width:100%;}
+    .row-actions{text-align:right;}
+  }
+  @media (max-width:400px){
+    header h1{font-size:15px;}
+    .toolbar button{font-size:11px; padding:9px 6px;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Relatório Diário de Obra (RDO)</h1>
+  <p>Benetech Brasil</p>
+</header>
+
+<div class="wrap">
+
+  <div class="toolbar">
+    <button class="btn-primary" onclick="salvar()">💾 Salvar RDO</button>
+    <button class="btn-secondary" onclick="novoRDO()">➕ Novo RDO</button>
+    <button class="btn-secondary" onclick="abrirLista()">📂 Abrir RDO salvo</button>
+    <button class="btn-secondary" onclick="window.print()">🖨️ Imprimir / PDF</button>
+    <button class="btn-danger" onclick="excluirAtual()">🗑️ Excluir este RDO</button>
+    <span class="status" id="status"></span>
+  </div>
+
+  <div class="card">
+    <h2>Identificação</h2>
+    <div class="grid grid-4">
+      <div><label>Nº RDO</label><input id="numeroRdo"></div>
+      <div><label>Data</label><input type="date" id="dataRdo"></div>
+      <div><label>Cliente / Contrato</label><input id="cliente"></div>
+      <div><label>Local / Facilidade</label><input id="local"></div>
+    </div>
+    <div class="grid grid-3" style="margin-top:10px;">
+      <div><label>Responsável Técnico</label><input id="responsavel"></div>
+      <div><label>Condição Climática</label>
+        <select id="clima">
+          <option value="">Selecione</option>
+          <option>Bom / Sem chuva</option>
+          <option>Nublado</option>
+          <option>Chuva leve</option>
+          <option>Chuva forte — impacto na atividade</option>
+          <option>Outro (ver observações)</option>
+        </select>
+      </div>
+      <div><label>Turno</label>
+        <select id="turno">
+          <option>Diurno</option>
+          <option>Noturno</option>
+          <option>Diurno + Noturno</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Efetivo de mão de obra presente no dia</h2>
+    <table id="tblEfetivo">
+      <thead><tr>
+        <th style="width:18%">Nome</th>
+        <th style="width:16%">Função</th>
+        <th style="width:12%">Empresa</th>
+        <th style="width:9%">Entrada</th>
+        <th style="width:9%">Saída</th>
+        <th style="width:9%">Horas Trab.</th>
+        <th style="width:9%">H. Extras</th>
+        <th style="width:14%">Obs.</th>
+        <th style="width:8%"></th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+    <p style="font-size:11px;color:#666;margin:4px 0 8px;">Jornada padrão Benetech: 07:30 às 17:30. Hora extra = tempo antes de 07:30 e/ou depois de 17:30.</p>
+    <button class="btn-add" onclick="addEfetivo()">+ Adicionar colaborador</button>
+    <div class="totals">
+      <div>Efetivo total: <span id="totalEfetivo">0</span></div>
+      <div>Total horas trabalhadas: <span id="totalHorasTrab">0.00</span> h</div>
+      <div>Total horas extras: <span id="totalHorasExtra">0.00</span> h</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Tempos parados aguardando liberação</h2>
+    <table id="tblParada">
+      <thead><tr>
+        <th style="width:12%">Início</th>
+        <th style="width:12%">Fim</th>
+        <th style="width:10%">Tempo (h)</th>
+        <th style="width:22%">Motivo da paralisação</th>
+        <th style="width:22%">Área / Equipamento aguardado</th>
+        <th style="width:14%">Liberado por</th>
+        <th style="width:8%"></th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+    <button class="btn-add" onclick="addParada()">+ Adicionar parada</button>
+    <div class="totals">
+      <div>Total de horas paradas: <span id="totalParada">0.00</span> h</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Atividades executadas no dia</h2>
+    <table id="tblAtividade">
+      <thead><tr>
+        <th style="width:10%">Início</th>
+        <th style="width:10%">Fim</th>
+        <th style="width:38%">Descrição da atividade</th>
+        <th style="width:22%">Local / Equipamento</th>
+        <th style="width:12%">% Concluído</th>
+        <th style="width:8%"></th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+    <button class="btn-add" onclick="addAtividade()">+ Adicionar atividade</button>
+  </div>
+
+  <div class="card">
+    <h2>Ocorrências / Observações gerais</h2>
+    <textarea id="observacoes" rows="4" placeholder="Registre não conformidades, acidentes, atrasos, pendências de material, etc."></textarea>
+  </div>
+
+  <div class="card">
+    <h2>Assinaturas</h2>
+    <div class="grid grid-2">
+      <div>
+        <label>Responsável Técnico Benetech (nome)</label>
+        <input id="nomeCtv" placeholder="Nome completo">
+        <label style="margin-top:8px;">Assinatura</label>
+        <div class="sigbox">
+          <canvas id="canvasCtv" class="sigcanvas"></canvas>
+          <button type="button" class="btn-clear" onclick="limparAssinatura('canvasCtv')">Limpar assinatura</button>
+        </div>
+      </div>
+      <div>
+        <label>Fiscal / Representante do Cliente (nome)</label>
+        <input id="nomeCliente" placeholder="Nome completo">
+        <label style="margin-top:8px;">Assinatura</label>
+        <div class="sigbox">
+          <canvas id="canvasCliente" class="sigcanvas"></canvas>
+          <button type="button" class="btn-clear" onclick="limparAssinatura('canvasCliente')">Limpar assinatura</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>Ferramenta offline — dados salvos apenas neste navegador (localStorage). Faça backup exportando/imprimindo os RDOs importantes.</footer>
+
+<script>
+const STORAGE_KEY = "benetech_rdo_registros";
+let rdoAtualId = null;
+
+function uid(){ return 'rdo_' + Date.now() + '_' + Math.random().toString(36).slice(2,7); }
+
+function getRegistros(){
+  try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch(e){ return {}; }
+}
+function setRegistros(obj){ localStorage.setItem(STORAGE_KEY, JSON.stringify(obj)); }
+
+// Jornada padrão Benetech
+const JORNADA_INICIO = "07:30";
+const JORNADA_FIM = "17:30";
+
+const FUNCOES = [
+  "Supervisor", "Encarregado", "Líder de Vulcanização", "Vulcanizador I",
+  "Vulcanizador II", "Vulcanizador II", "Ajud. Vulcanização", "Mecânico", "Soldador"
+];
+
+function minutosDoDia(hhmm){
+  const [h,m] = hhmm.split(":").map(Number);
+  return h*60+m;
+}
+
+function horasEntre(h1, h2){
+  if(!h1 || !h2) return "";
+  const [a,b] = h1.split(":").map(Number);
+  const [c,d] = h2.split(":").map(Number);
+  let mins = (c*60+d) - (a*60+b);
+  if(mins < 0) mins += 24*60; // atravessou meia-noite
+  return (mins/60).toFixed(2);
+}
+
+// Hora extra = tempo trabalhado antes do início da jornada (07:30)
+// mais o tempo trabalhado depois do fim da jornada (17:30).
+function horasExtras(entrada, saida){
+  if(!entrada || !saida) return "";
+  const ini = minutosDoDia(JORNADA_INICIO);
+  const fim = minutosDoDia(JORNADA_FIM);
+  const ent = minutosDoDia(entrada);
+  let sai = minutosDoDia(saida);
+  if(sai < ent) sai += 24*60; // atravessou meia-noite
+
+  const extraInicio = Math.max(0, ini - ent);          // chegou antes das 07:30
+  const extraFim = Math.max(0, sai - Math.max(fim, ent)); // saiu depois das 17:30
+  const totalExtraMin = extraInicio + extraFim;
+  return (totalExtraMin/60).toFixed(2);
+}
+
+/* ---------- ASSINATURA (CANVAS) ---------- */
+const sigCanvases = {}; // id -> {ctx, drawing, lastX, lastY}
+
+function initAssinatura(canvasId){
+  const canvas = document.getElementById(canvasId);
+  // Ajusta resolução interna ao tamanho real exibido (evita traço borrado/desalinhado)
+  const ratio = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * ratio;
+  canvas.height = rect.height * ratio;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(ratio, ratio);
+  ctx.lineWidth = 2;
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "#1a1a1a";
+  sigCanvases[canvasId] = { ctx, drawing:false, lastX:0, lastY:0, rect };
+
+  const pos = (e)=>{
+    const r = canvas.getBoundingClientRect();
+    const cx = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
+    const cy = (e.touches ? e.touches[0].clientY : e.clientY) - r.top;
+    return {x:cx, y:cy};
+  };
+  const start = (e)=>{
+    e.preventDefault();
+    const s = sigCanvases[canvasId];
+    s.drawing = true;
+    const p = pos(e);
+    s.lastX = p.x; s.lastY = p.y;
+  };
+  const move = (e)=>{
+    const s = sigCanvases[canvasId];
+    if(!s.drawing) return;
+    e.preventDefault();
+    const p = pos(e);
+    s.ctx.beginPath();
+    s.ctx.moveTo(s.lastX, s.lastY);
+    s.ctx.lineTo(p.x, p.y);
+    s.ctx.stroke();
+    s.lastX = p.x; s.lastY = p.y;
+  };
+  const end = ()=>{ sigCanvases[canvasId].drawing = false; };
+
+  canvas.addEventListener("mousedown", start);
+  canvas.addEventListener("mousemove", move);
+  window.addEventListener("mouseup", end);
+  canvas.addEventListener("touchstart", start, {passive:false});
+  canvas.addEventListener("touchmove", move, {passive:false});
+  canvas.addEventListener("touchend", end);
+}
+
+function limparAssinatura(canvasId){
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function assinaturaVazia(canvasId){
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext("2d");
+  const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  for(let i=3; i<data.length; i+=4){ if(data[i] !== 0) return false; }
+  return true;
+}
+
+function getAssinaturaDataURL(canvasId){
+  if(assinaturaVazia(canvasId)) return "";
+  return document.getElementById(canvasId).toDataURL("image/png");
+}
+
+function setAssinaturaDataURL(canvasId, dataURL){
+  limparAssinatura(canvasId);
+  if(!dataURL) return;
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext("2d");
+  const img = new Image();
+  img.onload = () => {
+    const ratio = window.devicePixelRatio || 1;
+    ctx.drawImage(img, 0, 0, canvas.width/ratio, canvas.height/ratio);
+  };
+  img.src = dataURL;
+}
+
+/* ---------- EFETIVO ---------- */
+function addEfetivo(data={}){
+  const tbody = document.querySelector("#tblEfetivo tbody");
+  const tr = document.createElement("tr");
+  const opcoesFuncao = FUNCOES.map(f=>`<option value="${f}" ${data.funcao===f?'selected':''}>${f}</option>`).join("");
+  tr.innerHTML = `
+    <td data-label="Nome"><input class="nome" value="${data.nome||''}"></td>
+    <td data-label="Função"><select class="funcao"><option value="">Selecione</option>${opcoesFuncao}</select></td>
+    <td data-label="Empresa"><input class="empresa" value="${data.empresa||'Benetech'}"></td>
+    <td data-label="Entrada"><input type="time" class="entrada" value="${data.entrada||''}" onchange="calcEfetivo(this)"></td>
+    <td data-label="Saída"><input type="time" class="saida" value="${data.saida||''}" onchange="calcEfetivo(this)"></td>
+    <td class="calc" data-label="Horas Trabalhadas"><input class="horas" value="${data.horas||''}" readonly></td>
+    <td class="calc" data-label="Horas Extras"><input class="horasExtra" value="${data.horasExtra||''}" readonly></td>
+    <td data-label="Observações"><input class="obs" value="${data.obs||''}"></td>
+    <td class="row-actions" data-label=""><button class="btn-del" onclick="this.closest('tr').remove(); recalcTotais();">✕</button></td>
+  `;
+  tbody.appendChild(tr);
+  recalcTotais();
+}
+function calcEfetivo(el){
+  const tr = el.closest("tr");
+  const ent = tr.querySelector(".entrada").value;
+  const sai = tr.querySelector(".saida").value;
+  tr.querySelector(".horas").value = horasEntre(ent, sai);
+  tr.querySelector(".horasExtra").value = horasExtras(ent, sai);
+  recalcTotais();
+}
+
+/* ---------- PARADA ---------- */
+function addParada(data={}){
+  const tbody = document.querySelector("#tblParada tbody");
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td data-label="Início"><input type="time" class="inicio" value="${data.inicio||''}" onchange="calcParada(this)"></td>
+    <td data-label="Fim"><input type="time" class="fim" value="${data.fim||''}" onchange="calcParada(this)"></td>
+    <td class="calc" data-label="Tempo Parado (h)"><input class="tempo" value="${data.tempo||''}" readonly></td>
+    <td data-label="Motivo"><input class="motivo" value="${data.motivo||''}"></td>
+    <td data-label="Área/Equipamento"><input class="area" value="${data.area||''}"></td>
+    <td data-label="Liberado por"><input class="liberadoPor" value="${data.liberadoPor||''}"></td>
+    <td class="row-actions" data-label=""><button class="btn-del" onclick="this.closest('tr').remove(); recalcTotais();">✕</button></td>
+  `;
+  tbody.appendChild(tr);
+  recalcTotais();
+}
+function calcParada(el){
+  const tr = el.closest("tr");
+  const ini = tr.querySelector(".inicio").value;
+  const fim = tr.querySelector(".fim").value;
+  tr.querySelector(".tempo").value = horasEntre(ini, fim);
+  recalcTotais();
+}
+
+/* ---------- ATIVIDADE ---------- */
+function addAtividade(data={}){
+  const tbody = document.querySelector("#tblAtividade tbody");
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td data-label="Início"><input type="time" class="inicio" value="${data.inicio||''}"></td>
+    <td data-label="Fim"><input type="time" class="fim" value="${data.fim||''}"></td>
+    <td data-label="Descrição"><input class="descricao" value="${data.descricao||''}"></td>
+    <td data-label="Local/Equipamento"><input class="localEquip" value="${data.localEquip||''}"></td>
+    <td data-label="% Concluído"><input type="number" min="0" max="100" class="percConcluido" value="${data.percConcluido||''}" placeholder="%"></td>
+    <td class="row-actions" data-label=""><button class="btn-del" onclick="this.closest('tr').remove();">✕</button></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+/* ---------- TOTAIS ---------- */
+function recalcTotais(){
+  let totalEfetivo=0, totalHoras=0, totalParada=0, totalExtra=0;
+  document.querySelectorAll("#tblEfetivo tbody tr").forEach(tr=>{
+    if(tr.querySelector(".nome").value.trim() !== "") totalEfetivo++;
+    const h = parseFloat(tr.querySelector(".horas").value);
+    if(!isNaN(h)) totalHoras += h;
+    const he = parseFloat(tr.querySelector(".horasExtra").value);
+    if(!isNaN(he)) totalExtra += he;
+  });
+  document.querySelectorAll("#tblParada tbody tr").forEach(tr=>{
+    const t = parseFloat(tr.querySelector(".tempo").value);
+    if(!isNaN(t)) totalParada += t;
+  });
+  document.getElementById("totalEfetivo").textContent = totalEfetivo;
+  document.getElementById("totalHorasTrab").textContent = totalHoras.toFixed(2);
+  document.getElementById("totalHorasExtra").textContent = totalExtra.toFixed(2);
+  document.getElementById("totalParada").textContent = totalParada.toFixed(2);
+}
+
+/* ---------- COLETA / PREENCHIMENTO DO FORM ---------- */
+function coletarDados(){
+  const efetivo = [...document.querySelectorAll("#tblEfetivo tbody tr")].map(tr=>({
+    nome: tr.querySelector(".nome").value,
+    funcao: tr.querySelector(".funcao").value,
+    empresa: tr.querySelector(".empresa").value,
+    entrada: tr.querySelector(".entrada").value,
+    saida: tr.querySelector(".saida").value,
+    horas: tr.querySelector(".horas").value,
+    horasExtra: tr.querySelector(".horasExtra").value,
+    obs: tr.querySelector(".obs").value,
+  }));
+  const paradas = [...document.querySelectorAll("#tblParada tbody tr")].map(tr=>({
+    inicio: tr.querySelector(".inicio").value,
+    fim: tr.querySelector(".fim").value,
+    tempo: tr.querySelector(".tempo").value,
+    motivo: tr.querySelector(".motivo").value,
+    area: tr.querySelector(".area").value,
+    liberadoPor: tr.querySelector(".liberadoPor").value,
+  }));
+  const atividades = [...document.querySelectorAll("#tblAtividade tbody tr")].map(tr=>({
+    inicio: tr.querySelector(".inicio").value,
+    fim: tr.querySelector(".fim").value,
+    descricao: tr.querySelector(".descricao").value,
+    localEquip: tr.querySelector(".localEquip").value,
+    percConcluido: tr.querySelector(".percConcluido").value,
+  }));
+  return {
+    numeroRdo: document.getElementById("numeroRdo").value,
+    dataRdo: document.getElementById("dataRdo").value,
+    cliente: document.getElementById("cliente").value,
+    local: document.getElementById("local").value,
+    responsavel: document.getElementById("responsavel").value,
+    clima: document.getElementById("clima").value,
+    turno: document.getElementById("turno").value,
+    observacoes: document.getElementById("observacoes").value,
+    nomeCtv: document.getElementById("nomeCtv").value,
+    nomeCliente: document.getElementById("nomeCliente").value,
+    assinaturaCtvImg: getAssinaturaDataURL("canvasCtv"),
+    assinaturaClienteImg: getAssinaturaDataURL("canvasCliente"),
+    efetivo, paradas, atividades,
+    atualizadoEm: new Date().toISOString(),
+  };
+}
+
+function preencherForm(d){
+  document.getElementById("numeroRdo").value = d.numeroRdo||"";
+  document.getElementById("dataRdo").value = d.dataRdo||"";
+  document.getElementById("cliente").value = d.cliente||"";
+  document.getElementById("local").value = d.local||"";
+  document.getElementById("responsavel").value = d.responsavel||"";
+  document.getElementById("clima").value = d.clima||"";
+  document.getElementById("turno").value = d.turno||"Diurno";
+  document.getElementById("observacoes").value = d.observacoes||"";
+  document.getElementById("nomeCtv").value = d.nomeCtv||"";
+  document.getElementById("nomeCliente").value = d.nomeCliente||"";
+  setAssinaturaDataURL("canvasCtv", d.assinaturaCtvImg||"");
+  setAssinaturaDataURL("canvasCliente", d.assinaturaClienteImg||"");
+
+  document.querySelector("#tblEfetivo tbody").innerHTML = "";
+  document.querySelector("#tblParada tbody").innerHTML = "";
+  document.querySelector("#tblAtividade tbody").innerHTML = "";
+  (d.efetivo||[]).forEach(addEfetivo);
+  (d.paradas||[]).forEach(addParada);
+  (d.atividades||[]).forEach(addAtividade);
+  recalcTotais();
+}
+
+/* ---------- AÇÕES ---------- */
+function salvar(){
+  const dados = coletarDados();
+  if(!dados.numeroRdo && !dados.dataRdo){
+    alert("Preencha ao menos o Nº do RDO ou a Data antes de salvar.");
+    return;
+  }
+  const registros = getRegistros();
+  if(!rdoAtualId) rdoAtualId = uid();
+  registros[rdoAtualId] = dados;
+  setRegistros(registros);
+  mostrarStatus("Salvo às " + new Date().toLocaleTimeString("pt-BR"));
+}
+
+function novoRDO(){
+  if(!confirm("Iniciar um novo RDO em branco? Alterações não salvas serão perdidas.")) return;
+  rdoAtualId = null;
+  preencherForm({});
+  addEfetivo(); addParada(); addAtividade();
+  document.getElementById("dataRdo").valueAsDate = new Date();
+  mostrarStatus("");
+}
+
+function abrirLista(){
+  const registros = getRegistros();
+  const ids = Object.keys(registros);
+  if(ids.length === 0){ alert("Nenhum RDO salvo ainda."); return; }
+  let lista = ids.map(id=>{
+    const r = registros[id];
+    return `${id}||${r.numeroRdo||'(sem nº)'} — ${r.dataRdo||'sem data'} — ${r.cliente||''}`;
+  });
+  const escolha = prompt("Digite o número correspondente ao RDO que deseja abrir:\n\n" +
+    lista.map((l,i)=>`${i+1}. ${l.split('||')[1]}`).join("\n"));
+  const idx = parseInt(escolha) - 1;
+  if(isNaN(idx) || idx < 0 || idx >= ids.length) return;
+  rdoAtualId = ids[idx];
+  preencherForm(registros[rdoAtualId]);
+  mostrarStatus("RDO carregado");
+}
+
+function excluirAtual(){
+  if(!rdoAtualId){ alert("Este RDO ainda não foi salvo."); return; }
+  if(!confirm("Excluir permanentemente este RDO salvo?")) return;
+  const registros = getRegistros();
+  delete registros[rdoAtualId];
+  setRegistros(registros);
+  rdoAtualId = null;
+  preencherForm({});
+  mostrarStatus("Excluído");
+}
+
+function mostrarStatus(msg){
+  const el = document.getElementById("status");
+  el.textContent = msg;
+  if(msg) setTimeout(()=>{ if(el.textContent===msg) el.textContent=""; }, 4000);
+}
+
+// Recalcular totais ao digitar em qualquer campo relevante
+document.addEventListener("input", (e)=>{
+  if(e.target.matches(".entrada, .saida, .inicio, .fim, .nome")) recalcTotais();
+});
+
+// Inicialização (sem confirmação, primeira carga da página)
+window.onload = () => {
+  rdoAtualId = null;
+  addEfetivo(); addParada(); addAtividade();
+  document.getElementById("dataRdo").valueAsDate = new Date();
+  initAssinatura("canvasCtv");
+  initAssinatura("canvasCliente");
+};
+
+// Reconstrói os canvases ao girar a tela ou redimensionar, preservando o traço já feito
+let resizeTimer;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    const imgCtv = getAssinaturaDataURL("canvasCtv");
+    const imgCliente = getAssinaturaDataURL("canvasCliente");
+    initAssinatura("canvasCtv");
+    initAssinatura("canvasCliente");
+    if(imgCtv) setAssinaturaDataURL("canvasCtv", imgCtv);
+    if(imgCliente) setAssinaturaDataURL("canvasCliente", imgCliente);
+  }, 300);
+});
+
+</script>
+
+</body>
+</html>
